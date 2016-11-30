@@ -1,7 +1,8 @@
 (function() {
   'use strict';
 
-  const movies = [];
+  let movies = [];
+  let page = 1;
 
   const renderMovies = function() {
     $('#listings').empty();
@@ -56,5 +57,80 @@
     }
   };
 
-  // ADD YOUR CODE HERE
+  const addMovie = function(results) {
+    for (const result of results) {
+      const $xhr = $.ajax({
+        method: 'GET',
+        url: `https:www.omdbapi.com/?i=${result.imdbID}`,
+        dataType: 'json'
+      })
+
+      $xhr.done((data) => {
+        const movie = {};
+
+        movie['id'] = data.imdbID;
+        movie['title'] = data.Title;
+        movie['year'] = data.Year;
+
+        if (data.Poster === 'N/A') {
+          movie['poster'] = 'http://www.catholic-ew.org.uk/var/storage/images/cbcew2/cbcew-media-library/images/cbcew-images/movie-poster-unavailable-150px/157177-1-eng-GB/Movie-poster-unavailable-150px_large.jpg';
+        } else {
+          movie['poster'] = data.Poster;
+        }
+
+        if (data.Plot === 'N/A') {
+          movie['plot'] = 'Plot unavailable.'
+        } else {
+          movie['plot'] = data.Plot;
+        }
+
+        movies.push(movie);
+
+        renderMovies();
+      })
+    }
+
+  };
+
+  const searchApi = function(page) {
+    const searchTerm = $('#search').val();
+
+    if (searchTerm === '') {
+      Materialize.toast('Please enter a search term.', 3000);
+      return;
+    }
+
+    const $xhr = $.ajax({
+      method: 'GET',
+      url: `https:www.omdbapi.com/?s=${searchTerm}&page=${page}`,
+      dataType: 'json'
+    });
+
+    $xhr.done((data) => {
+      if ($xhr.status !== 200) {
+        return;
+      }
+
+      let results = data.Search;
+
+      addMovie(results);
+    });
+  }
+
+  $('form').on('submit', () => {
+    event.preventDefault();
+    movies = [];
+    $('#loader').removeAttr('style')
+
+    searchApi(page);
+  });
+
+  $('#search').on('click', () => {
+    $('#search').val('');
+  })
+
+  $('#loader').on('click', () => {
+    page++
+    searchApi(page);
+  })
 })();
